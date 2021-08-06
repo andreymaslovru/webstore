@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 const { User, Basket } = require("../models/models");
+const { badRequest } = require("../err/ApiError");
 
 const generateJWT = (email, id) => {
   return jwt.sign({ id, email }, process.env.SECRET_KEY, {
@@ -30,7 +31,20 @@ class userController {
     return res.json({ token });
   }
 
-  async login(req, res) {}
+  async login(req, res, next) {
+    const { email, password } = req.body;
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return next(badRequest("Пользователь не найден"));
+    }
+    let comparePassword = bcrypt.compareSync(password, user.password);
+
+    if (!comparePassword) {
+      return next(badRequest("Неверный пароль"));
+    }
+    const token = generateJWT(user.id, user.email);
+    return res.json({ token });
+  }
 
   async check(req, res, next) {
     const { id } = req.query;
