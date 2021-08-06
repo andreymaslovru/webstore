@@ -47,11 +47,8 @@ class userController {
   }
 
   async check(req, res, next) {
-    const { id } = req.query;
-    if (!id) {
-      return next(ApiError.badRequest);
-    }
-    res.json(id);
+    const token = generateJWT(req.user.id, req.user.email);
+    return res.json({ token, message: "авторизован" });
   }
 }
 
