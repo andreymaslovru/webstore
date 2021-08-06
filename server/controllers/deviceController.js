@@ -1,15 +1,20 @@
 const uuid = require("uuid");
 const path = require("path");
-const { Device } = require("../models/models");
+const { Device, DeviceInfo } = require("../models/models");
 const ApiError = require("../err/ApiError");
 
 class deviceController {
-  async create(req, res, next) {
+  async create(req, res) {
     try {
       const { name, price, brandId, typeId, info } = req.body;
       const { img } = req.files;
-      const fileName = uuid.v4() + ".jpg";
+      let fileName = uuid.v4() + ".jpg";
       img.mv(path.resolve(__dirname, "..", "static", fileName));
+
+      if (indo) {
+        info = JSON.parse(info);
+        info.forEach((i) => console.log(i));
+      }
 
       const device = await Device.create({
         name,
@@ -20,32 +25,42 @@ class deviceController {
       });
 
       return res.json(device);
-    } catch (error) {}
+    } catch (error) {
+      console.log("errrr", error);
+    }
   }
-  async getAll(req, res) {
+  async getAll(req, res, next) {
     try {
-      const { brandId, typeId, limit, page } = req.query;
+      let { brandId, typeId, limit, page } = req.query;
       page = page || 1;
       limit = limit || 10;
       let offset = page * limit - limit;
-      let device;
+      let devices;
       if (!brandId && !typeId) {
-        devices = await Device.findAll({ limit, offset });
+        devices = await Device.findAndCountAll({ limit, offset });
       }
       if (brandId && !typeId) {
-        devices = await Device.findAll({ where: { brandId }, limit, offset });
+        devices = await Device.findAndCountAll({
+          where: { brandId },
+          limit,
+          offset,
+        });
       }
       if (!brandId && typeId) {
-        devices = await Device.findAll({ where: { typeId }, limit, offset });
+        devices = await Device.findAndCountAll({
+          where: { typeId },
+          limit,
+          offset,
+        });
       }
       if (brandId && typeId) {
-        devices = await Device.findAll({
+        devices = await Device.findAndCountAll({
           where: { brandId, typeId },
           limit,
           offset,
         });
       }
-      res.json(devices);
+      return res.json(devices);
     } catch (error) {
       return next(ApiError.badRequest);
     }
